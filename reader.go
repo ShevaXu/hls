@@ -357,7 +357,7 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *Widevine, state *decodingSt
 		}
 	case !strings.HasPrefix(line, "#"):
 		if state.tagInf {
-			err := p.Append(line, state.duration, state.title)
+			err := p.Append(QuickSegment(line, state.title, state.duration))
 			if err == ErrPlaylistFull {
 				// Extend playlist by doubling size, reset internal state, try again.
 				// If the second Append fails, the if err block will handle it.
@@ -366,7 +366,7 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *Widevine, state *decodingSt
 				p.Segments = append(p.Segments, make([]*MediaSegment, p.Count())...)
 				p.capacity = len(p.Segments)
 				p.tail = p.count
-				err = p.Append(line, state.duration, state.title)
+				err = p.Append(QuickSegment(line, state.title, state.duration))
 			}
 			// Check err for first or subsequent Append()
 			if err != nil {

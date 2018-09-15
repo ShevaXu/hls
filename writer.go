@@ -14,15 +14,20 @@ var (
 	ErrPlaylistFull = errors.New("playlist is full")
 )
 
-// Set version of the playlist accordingly with section 7
-func version(ver *int, newver int) {
+// checkVersion checks and sets the playlist version accordingly with section 7.
+func checkVersion(ver *int, newver int) {
 	if *ver < newver {
 		*ver = newver
 	}
 }
 
-func strver(ver int) string {
-	return strconv.FormatUint(uint64(ver), 10)
+// QuickSegment returns a segment ready to append.
+func QuickSegment(uri, title string, duration float64) *MediaSegment {
+	return &MediaSegment{
+		URI:      uri,
+		Title:    title,
+		Duration: duration,
+	}
 }
 
 // Create new empty master playlist.
@@ -48,7 +53,7 @@ func (p *MasterPlaylist) Append(uri string, chunklist *MediaPlaylist, params Var
 		// 1, but playback on older clients may not be desirable.  A server MAY
 		// consider indicating a EXT-X-VERSION of 4 or higher in the Master
 		// Playlist but is not required to do so.
-		version(&p.ver, 4) // so it is optional and in theory may be set to ver.1
+		checkVersion(&p.ver, 4) // so it is optional and in theory may be set to ver.1
 		// but more tests required
 	}
 	p.buf.Reset()
@@ -65,7 +70,7 @@ func (p *MasterPlaylist) Encode() *bytes.Buffer {
 	}
 
 	p.buf.WriteString("#EXTM3U\n#EXT-X-VERSION:")
-	p.buf.WriteString(strver(p.ver))
+	p.buf.WriteString(strconv.Itoa(p.ver))
 	p.buf.WriteRune('\n')
 
 	var altsWritten map[string]bool = make(map[string]bool)
@@ -274,19 +279,9 @@ func (p *MediaPlaylist) Remove() (err error) {
 	return nil
 }
 
-// Append general chunk to the tail of chunk slice for a media playlist.
+// Append appends a MediaSegment to the tail of chunk slice for a media playlist.
 // This operation does reset playlist cache.
-func (p *MediaPlaylist) Append(uri string, duration float64, title string) error {
-	seg := new(MediaSegment)
-	seg.URI = uri
-	seg.Duration = duration
-	seg.Title = title
-	return p.AppendSegment(seg)
-}
-
-// AppendSegment appends a MediaSegment to the tail of chunk slice for a media playlist.
-// This operation does reset playlist cache.
-func (p *MediaPlaylist) AppendSegment(seg *MediaSegment) error {
+func (p *MediaPlaylist) Append(seg *MediaSegment) error {
 	if p.head == p.tail && p.count > 0 {
 		return ErrPlaylistFull
 	}
@@ -300,36 +295,29 @@ func (p *MediaPlaylist) AppendSegment(seg *MediaSegment) error {
 	return nil
 }
 
-// AppendSegmentWithAutoExtend appends a MediaSegment and auto extend the capacity.
-func (p *MediaPlaylist) AppendSegmentWithAutoExtend(seg *MediaSegment) error {
+// AppendWithAutoExtend appends a MediaSegment and
+// auto extend the capacity if 2/3 full.
+func (p *MediaPlaylist) AppendWithAutoExtend(seg *MediaSegment) error {
 	if p.count > p.capacity*2/3 {
 		if err := p.ExtendCapacity(); err != nil {
 			return err
 		}
 	}
-	return p.AppendSegment(seg)
+	return p.Append(seg)
 }
 
-// AppendWithAutoExtend extends the capacity before append.
-func (p *MediaPlaylist) AppendWithAutoExtend(uri string, duration float64, title string) error {
-	seg := new(MediaSegment)
-	seg.URI = uri
-	seg.Duration = duration
-	seg.Title = title
-	return p.AppendSegmentWithAutoExtend(seg)
-}
-
-// SlideSegment Combines two operations: firstly it removes one chunk from the head of chunk slice and move pointer to
-// next chunk. Secondly it appends one chunk to the tail of chunk slice. Useful for sliding playlists.
+// Slide first removes one chunk from the head if winsize full, then
+// appends one chunk to the tail.
+// Useful for sliding/live playlists.
 // This operation does reset cache.
-func (p *MediaPlaylist) SlideSegment(seg *MediaSegment) (err error) {
+func (p *MediaPlaylist) Slide(seg *MediaSegment) (err error) {
 	if !p.Closed {
 		if p.count >= p.winsize {
 			if err = p.Remove(); err != nil {
 				return err
 			}
 		}
-		return p.AppendSegment(seg)
+		return p.Append(seg)
 	}
 	return nil
 }
@@ -346,7 +334,7 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 	}
 
 	p.buf.WriteString("#EXTM3U\n#EXT-X-VERSION:")
-	p.buf.WriteString(strver(p.ver))
+	p.buf.WriteString(strconv.Itoa(p.ver))
 	p.buf.WriteRune('\n')
 	// default key (workaround for Widevine)
 	if p.Key != nil {
@@ -627,7 +615,7 @@ func (p *MediaPlaylist) String() string {
 func (p *MediaPlaylist) DurationAsInt(yes bool) {
 	if yes {
 		// duration must be integers if protocol version is less than 3
-		version(&p.ver, 3)
+		checkVersion(&p.ver, 3)
 	}
 	p.durationAsInt = yes
 }
@@ -653,7 +641,7 @@ func (p *MediaPlaylist) SetDefaultKey(method, uri, iv, keyformat, keyformatversi
 	// contains:
 	//   - The KEYFORMAT and KEYFORMATVERSIONS attributes of the EXT-X-KEY tag.
 	if keyformat != "" || keyformatversions != "" {
-		version(&p.ver, 5)
+		checkVersion(&p.ver, 5)
 	}
 	p.Key = &Key{method, uri, iv, keyformat, keyformatversions}
 
@@ -663,14 +651,14 @@ func (p *MediaPlaylist) SetDefaultKey(method, uri, iv, keyformat, keyformatversi
 // Set default Media Initialization Section values for playlist (pointer to MediaPlaylist.Map).
 // Set EXT-X-MAP tag for the whole playlist.
 func (p *MediaPlaylist) SetDefaultMap(uri string, limit, offset int) {
-	version(&p.ver, 5) // due section 4
+	checkVersion(&p.ver, 5) // due section 4
 	p.Map = &Map{uri, limit, offset}
 }
 
 // Mark medialist as consists of only I-frames (Intra frames).
 // Set tag for the whole list.
 func (p *MediaPlaylist) SetIframeOnly() {
-	version(&p.ver, 4) // due section 4.3.3
+	checkVersion(&p.ver, 4) // due section 4.3.3
 	p.Iframe = true
 }
 
@@ -684,7 +672,7 @@ func (p *MediaPlaylist) SetKey(method, uri, iv, keyformat, keyformatversions str
 	// contains:
 	//   - The KEYFORMAT and KEYFORMATVERSIONS attributes of the EXT-X-KEY tag.
 	if keyformat != "" || keyformatversions != "" {
-		version(&p.ver, 5)
+		checkVersion(&p.ver, 5)
 	}
 
 	p.Segments[p.last()].Key = &Key{method, uri, iv, keyformat, keyformatversions}
@@ -696,7 +684,7 @@ func (p *MediaPlaylist) SetMap(uri string, limit, offset int) error {
 	if p.count == 0 {
 		return errors.New("playlist is empty")
 	}
-	version(&p.ver, 5) // due section 4
+	checkVersion(&p.ver, 5) // due section 4
 	p.Segments[p.last()].Map = &Map{uri, limit, offset}
 	return nil
 }
@@ -706,7 +694,7 @@ func (p *MediaPlaylist) SetRange(limit, offset int) error {
 	if p.count == 0 {
 		return errors.New("playlist is empty")
 	}
-	version(&p.ver, 4) // due section 3.4.1
+	checkVersion(&p.ver, 4) // due section 3.4.1
 	p.Segments[p.last()].Limit = limit
 	p.Segments[p.last()].Offset = offset
 	return nil
