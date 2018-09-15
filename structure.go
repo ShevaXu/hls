@@ -20,11 +20,11 @@ const (
 		   o  The EXT-X-MEDIA tag.
 		   o  The AUDIO and VIDEO attributes of the EXT-X-STREAM-INF tag.
 	*/
-	minVer   = uint8(3)
+	minVer   = 3
 	DateTime = time.RFC3339Nano // Format for EXT-X-PROGRAM-DATE-TIME defined in section 3.4.5
 )
 
-type ListType uint
+type ListType int
 
 const (
 	// use 0 for not defined type
@@ -33,7 +33,7 @@ const (
 )
 
 // for EXT-X-PLAYLIST-TYPE tag
-type MediaType uint
+type MediaType int
 
 const (
 	// use 0 for not defined type
@@ -44,7 +44,7 @@ const (
 // SCTE35Syntax defines the format of the SCTE-35 cue points which do not use
 // the draft-pantos-http-live-streaming-19 EXT-X-DATERANGE tag and instead
 // have their own custom tags
-type SCTE35Syntax uint
+type SCTE35Syntax int
 
 const (
 	// Syntax672014 will be the default due to backwards compatibility reasons.
@@ -56,7 +56,7 @@ const (
 
 // SCTE35CueType defines the type of cue point, used by readers and writers to
 // write a different syntax
-type SCTE35CueType uint
+type SCTE35CueType int
 
 const (
 	SCTE35CueStart SCTE35CueType = iota // SCTE35CueStart indicates an out cue point
@@ -94,7 +94,7 @@ const (
 */
 type MediaPlaylist struct {
 	TargetDuration float64
-	SeqNo          uint64 // EXT-X-MEDIA-SEQUENCE
+	SeqNo          int // EXT-X-MEDIA-SEQUENCE
 	Segments       []*MediaSegment
 	Args           string // optional arguments placed after URIs (URI?Args)
 	Iframe         bool   // EXT-X-I-FRAMES-ONLY
@@ -102,13 +102,13 @@ type MediaPlaylist struct {
 	MediaType      MediaType
 	durationAsInt  bool // output durations as integers of floats?
 	keyformat      int
-	winsize        uint // max number of segments displayed in an encoded playlist; need set to zero for VOD playlists
-	capacity       uint // total capacity of slice used for the playlist
-	head           uint // head of FIFO, we add segments to head
-	tail           uint // tail of FIFO, we remove segments from tail
-	count          uint // number of segments added to the playlist
+	winsize        int // max number of segments displayed in an encoded playlist; need set to zero for VOD playlists
+	capacity       int // total capacity of slice used for the playlist
+	head           int // head of FIFO, we add segments to head
+	tail           int // tail of FIFO, we remove segments from tail
+	count          int // number of segments added to the playlist
 	buf            bytes.Buffer
-	ver            uint8
+	ver            int
 	Key            *Key      // EXT-X-KEY is optional encryption key displayed before any segments (default key for the playlist)
 	Map            *Map      // EXT-X-MAP is optional tag specifies how to obtain the Media Initialization Section (default map for the playlist)
 	W              *Widevine // Widevine related tags outside of M3U8 specs
@@ -134,7 +134,7 @@ type MasterPlaylist struct {
 	Args          string // optional arguments placed after URI (URI?Args)
 	CypherVersion string // non-standard tag for Widevine (see also WV struct)
 	buf           bytes.Buffer
-	ver           uint8
+	ver           int
 }
 
 // This structure represents variants for master playlist.
@@ -148,8 +148,8 @@ type Variant struct {
 // This structure represents additional parameters for a variant
 // used in EXT-X-STREAM-INF and EXT-X-I-FRAME-STREAM-INF
 type VariantParams struct {
-	ProgramID    uint32
-	Bandwidth    uint32
+	ProgramID    int
+	Bandwidth    int
 	Codecs       string
 	Resolution   string
 	Audio        string // EXT-X-STREAM-INF only
@@ -179,12 +179,12 @@ type Alternative struct {
 // Media segment may be encrypted.
 // Widevine supports own tags for encryption metadata.
 type MediaSegment struct {
-	SeqID           uint64
+	SeqID           int
 	Title           string // optional second parameter for EXTINF tag
 	URI             string
 	Duration        float64   // first parameter for EXTINF tag; duration must be integers if protocol version is less than 3 but we are always keep them float
-	Limit           int64     // EXT-X-BYTERANGE <n> is length in bytes for the file under URI
-	Offset          int64     // EXT-X-BYTERANGE [@o] is offset from the start of the file under URI
+	Limit           int       // EXT-X-BYTERANGE <n> is length in bytes for the file under URI
+	Offset          int       // EXT-X-BYTERANGE [@o] is offset from the start of the file under URI
 	Key             *Key      // EXT-X-KEY displayed before the segment and means changing of encryption key (in theory each segment may have own key)
 	Map             *Map      // EXT-X-MAP displayed before the segment
 	Discontinuity   bool      // EXT-X-DISCONTINUITY indicates an encoding discontinuity between the media segment that follows it and the one that preceded it (i.e. file format, number and type of tracks, encoding parameters, encoding sequence, timestamp sequence)
@@ -224,25 +224,25 @@ type Key struct {
 // Realizes EXT-MAP tag.
 type Map struct {
 	URI    string
-	Limit  int64 // <n> is length in bytes for the file under URI
-	Offset int64 // [@o] is offset from the start of the file under URI
+	Limit  int // <n> is length in bytes for the file under URI
+	Offset int // [@o] is offset from the start of the file under URI
 }
 
 // This structure represents metadata  for Google Widevine playlists.
 // This format not described in IETF draft but provied by Widevine Live Packager as
 // additional tags with #Widevine-prefix.
 type Widevine struct {
-	AudioChannels          uint
-	AudioFormat            uint
-	AudioProfileIDC        uint
-	AudioSampleSize        uint
-	AudioSamplingFrequency uint
+	AudioChannels          int
+	AudioFormat            int
+	AudioProfileIDC        int
+	AudioSampleSize        int
+	AudioSamplingFrequency int
 	CypherVersion          string
 	ECM                    string
-	VideoFormat            uint
-	VideoFrameRate         uint
-	VideoLevelIDC          uint
-	VideoProfileIDC        uint
+	VideoFormat            int
+	VideoFrameRate         int
+	VideoLevelIDC          int
+	VideoProfileIDC        int
 	VideoResolution        string
 	VideoSAR               string
 }
@@ -269,8 +269,8 @@ type decodingState struct {
 	tagKey             bool
 	tagMap             bool
 	programDateTime    time.Time
-	limit              int64
-	offset             int64
+	limit              int
+	offset             int
 	duration           float64
 	title              string
 	variant            *Variant

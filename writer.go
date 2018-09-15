@@ -15,13 +15,13 @@ var (
 )
 
 // Set version of the playlist accordingly with section 7
-func version(ver *uint8, newver uint8) {
+func version(ver *int, newver int) {
 	if *ver < newver {
 		*ver = newver
 	}
 }
 
-func strver(ver uint8) string {
+func strver(ver int) string {
 	return strconv.FormatUint(uint64(ver), 10)
 }
 
@@ -220,13 +220,13 @@ func (p *MasterPlaylist) Encode() *bytes.Buffer {
 }
 
 // Version returns the current playlist version number
-func (p *MasterPlaylist) Version() uint8 {
+func (p *MasterPlaylist) Version() int {
 	return p.ver
 }
 
 // SetVersion sets the playlist version number, note the version maybe changed
 // automatically by other Set methods.
-func (p *MasterPlaylist) SetVersion(ver uint8) {
+func (p *MasterPlaylist) SetVersion(ver int) {
 	p.ver = ver
 }
 
@@ -240,7 +240,7 @@ func (p *MasterPlaylist) String() string {
 // Creates new media playlist structure.
 // Winsize defines how much items will displayed on playlist generation.
 // Capacity is total size of a playlist.
-func NewMediaPlaylist(winsize uint, capacity uint) (*MediaPlaylist, error) {
+func NewMediaPlaylist(winsize, capacity int) (*MediaPlaylist, error) {
 	p := new(MediaPlaylist)
 	p.ver = minVer
 	p.capacity = capacity
@@ -252,7 +252,7 @@ func NewMediaPlaylist(winsize uint, capacity uint) (*MediaPlaylist, error) {
 }
 
 // last returns the previously written segment's index
-func (p *MediaPlaylist) last() uint {
+func (p *MediaPlaylist) last() int {
 	if p.tail == 0 {
 		return p.capacity - 1
 	}
@@ -381,9 +381,9 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 		p.buf.WriteRune('"')
 		if p.Map.Limit > 0 {
 			p.buf.WriteString(",BYTERANGE=")
-			p.buf.WriteString(strconv.FormatInt(p.Map.Limit, 10))
+			p.buf.WriteString(strconv.Itoa(p.Map.Limit))
 			p.buf.WriteRune('@')
-			p.buf.WriteString(strconv.FormatInt(p.Map.Offset, 10))
+			p.buf.WriteString(strconv.Itoa(p.Map.Offset))
 		}
 		p.buf.WriteRune('\n')
 	}
@@ -398,7 +398,7 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 		}
 	}
 	p.buf.WriteString("#EXT-X-MEDIA-SEQUENCE:")
-	p.buf.WriteString(strconv.FormatUint(p.SeqNo, 10))
+	p.buf.WriteString(strconv.Itoa(p.SeqNo))
 	p.buf.WriteRune('\n')
 	p.buf.WriteString("#EXT-X-TARGETDURATION:")
 	p.buf.WriteString(strconv.FormatInt(int64(math.Ceil(p.TargetDuration)), 10)) // due section 3.4.2 of M3U8 specs EXT-X-TARGETDURATION must be integer
@@ -482,7 +482,7 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 
 	head := p.head
 	count := p.count
-	for i := uint(0); (i < p.winsize || p.winsize == 0) && count > 0; count-- {
+	for i := 0; (i < p.winsize || p.winsize == 0) && count > 0; count-- {
 		seg = p.Segments[head]
 		head = (head + 1) % p.capacity
 		if seg == nil { // protection from badly filled chunklists
@@ -569,9 +569,9 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 			p.buf.WriteRune('"')
 			if seg.Map.Limit > 0 {
 				p.buf.WriteString(",BYTERANGE=")
-				p.buf.WriteString(strconv.FormatInt(seg.Map.Limit, 10))
+				p.buf.WriteString(strconv.Itoa(seg.Map.Limit))
 				p.buf.WriteRune('@')
-				p.buf.WriteString(strconv.FormatInt(seg.Map.Offset, 10))
+				p.buf.WriteString(strconv.Itoa(seg.Map.Offset))
 			}
 			p.buf.WriteRune('\n')
 		}
@@ -582,9 +582,9 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 		}
 		if seg.Limit > 0 {
 			p.buf.WriteString("#EXT-X-BYTERANGE:")
-			p.buf.WriteString(strconv.FormatInt(seg.Limit, 10))
+			p.buf.WriteString(strconv.Itoa(seg.Limit))
 			p.buf.WriteRune('@')
-			p.buf.WriteString(strconv.FormatInt(seg.Offset, 10))
+			p.buf.WriteString(strconv.Itoa(seg.Offset))
 			p.buf.WriteRune('\n')
 		}
 		p.buf.WriteString("#EXTINF:")
@@ -633,7 +633,7 @@ func (p *MediaPlaylist) DurationAsInt(yes bool) {
 }
 
 // Count tells us the number of items that are currently in the media playlist
-func (p *MediaPlaylist) Count() uint {
+func (p *MediaPlaylist) Count() int {
 	return p.count
 }
 
@@ -662,7 +662,7 @@ func (p *MediaPlaylist) SetDefaultKey(method, uri, iv, keyformat, keyformatversi
 
 // Set default Media Initialization Section values for playlist (pointer to MediaPlaylist.Map).
 // Set EXT-X-MAP tag for the whole playlist.
-func (p *MediaPlaylist) SetDefaultMap(uri string, limit, offset int64) {
+func (p *MediaPlaylist) SetDefaultMap(uri string, limit, offset int) {
 	version(&p.ver, 5) // due section 4
 	p.Map = &Map{uri, limit, offset}
 }
@@ -692,7 +692,7 @@ func (p *MediaPlaylist) SetKey(method, uri, iv, keyformat, keyformatversions str
 }
 
 // Set map for the current segment of media playlist (pointer to Segment.Map)
-func (p *MediaPlaylist) SetMap(uri string, limit, offset int64) error {
+func (p *MediaPlaylist) SetMap(uri string, limit, offset int) error {
 	if p.count == 0 {
 		return errors.New("playlist is empty")
 	}
@@ -702,7 +702,7 @@ func (p *MediaPlaylist) SetMap(uri string, limit, offset int64) error {
 }
 
 // Set limit and offset for the current media segment (EXT-X-BYTERANGE support for protocol version 4).
-func (p *MediaPlaylist) SetRange(limit, offset int64) error {
+func (p *MediaPlaylist) SetRange(limit, offset int) error {
 	if p.count == 0 {
 		return errors.New("playlist is empty")
 	}
@@ -754,23 +754,23 @@ func (p *MediaPlaylist) SetProgramDateTime(value time.Time) error {
 }
 
 // Version returns the current playlist version number
-func (p *MediaPlaylist) Version() uint8 {
+func (p *MediaPlaylist) Version() int {
 	return p.ver
 }
 
 // SetVersion sets the playlist version number, note the version maybe changed
 // automatically by other Set methods.
-func (p *MediaPlaylist) SetVersion(ver uint8) {
+func (p *MediaPlaylist) SetVersion(ver int) {
 	p.ver = ver
 }
 
 // WinSize returns the playlist's window size.
-func (p *MediaPlaylist) WinSize() uint {
+func (p *MediaPlaylist) WinSize() int {
 	return p.winsize
 }
 
 // SetWinSize overwrites the playlist's window size.
-func (p *MediaPlaylist) SetWinSize(winsize uint) error {
+func (p *MediaPlaylist) SetWinSize(winsize int) error {
 	if winsize > p.capacity {
 		return errors.New("capacity must be greater than winsize or equal")
 	}
@@ -785,7 +785,7 @@ func (p *MediaPlaylist) ExtendCapacity() (err error) {
 		return errors.New("when extend capcity, cur count should > 0")
 	}
 	p.Segments = append(p.Segments, make([]*MediaSegment, p.count)...)
-	p.capacity = uint(len(p.Segments))
+	p.capacity = len(p.Segments)
 	p.tail = p.count
 	return
 }

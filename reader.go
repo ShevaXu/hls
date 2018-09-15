@@ -260,14 +260,14 @@ func decodeLineOfMasterPlaylist(p *MasterPlaylist, state *decodingState, line st
 				if strict && err != nil {
 					return err
 				}
-				state.variant.ProgramID = uint32(val)
+				state.variant.ProgramID = val
 			case "BANDWIDTH":
 				var val int
 				val, err = strconv.Atoi(v)
 				if strict && err != nil {
 					return err
 				}
-				state.variant.Bandwidth = uint32(val)
+				state.variant.Bandwidth = val
 			case "CODECS":
 				state.variant.Codecs = v
 			case "RESOLUTION":
@@ -306,14 +306,14 @@ func decodeLineOfMasterPlaylist(p *MasterPlaylist, state *decodingState, line st
 				if strict && err != nil {
 					return err
 				}
-				state.variant.ProgramID = uint32(val)
+				state.variant.ProgramID = val
 			case "BANDWIDTH":
 				var val int
 				val, err = strconv.Atoi(v)
 				if strict && err != nil {
 					return err
 				}
-				state.variant.Bandwidth = uint32(val)
+				state.variant.Bandwidth = val
 			case "CODECS":
 				state.variant.Codecs = v
 			case "RESOLUTION":
@@ -364,7 +364,7 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *Widevine, state *decodingSt
 				// Retrying instead of being recursive was chosen as the state maybe
 				// modified non-idempotently.
 				p.Segments = append(p.Segments, make([]*MediaSegment, p.Count())...)
-				p.capacity = uint(len(p.Segments))
+				p.capacity = len(p.Segments)
 				p.tail = p.count
 				err = p.Append(line, state.duration, state.title)
 			}
@@ -498,11 +498,11 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *Widevine, state *decodingSt
 		state.listType = ListTypeMedia
 		state.offset = 0
 		params := strings.SplitN(line[17:], "@", 2)
-		if state.limit, err = strconv.ParseInt(params[0], 10, 64); strict && err != nil {
+		if state.limit, err = strconv.Atoi(params[0]); strict && err != nil {
 			return fmt.Errorf("Byterange sub-range length value parsing error: %s", err)
 		}
 		if len(params) > 1 {
-			if state.offset, err = strconv.ParseInt(params[1], 10, 64); strict && err != nil {
+			if state.offset, err = strconv.Atoi(params[1]); strict && err != nil {
 				return fmt.Errorf("Byterange sub-range offset value parsing error: %s", err)
 			}
 		}
