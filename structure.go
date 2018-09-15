@@ -20,21 +20,25 @@ const (
 		   o  The EXT-X-MEDIA tag.
 		   o  The AUDIO and VIDEO attributes of the EXT-X-STREAM-INF tag.
 	*/
-	minVer   = 3
-	DateTime = time.RFC3339Nano // Format for EXT-X-PROGRAM-DATE-TIME defined in section 3.4.5
+	minVer = 3
+	// DateTime is the format for EXT-X-PROGRAM-DATE-TIME defined in section 3.4.5.
+	DateTime = time.RFC3339Nano
 )
 
+// ListType is the type of playlist parsed.
 type ListType int
 
+// List types defined
 const (
 	// use 0 for not defined type
 	ListTypeMaster ListType = iota + 1
 	ListTypeMedia
 )
 
-// for EXT-X-PLAYLIST-TYPE tag
+// MediaType is for EXT-X-PLAYLIST-TYPE tag.
 type MediaType int
 
+// Media types defined
 const (
 	// use 0 for not defined type
 	MediaTypeEvent MediaType = iota + 1
@@ -58,39 +62,40 @@ const (
 // write a different syntax
 type SCTE35CueType int
 
+// Cue types defined
 const (
 	SCTE35CueStart SCTE35CueType = iota // SCTE35CueStart indicates an out cue point
 	SCTE35CueMid                        // SCTE35CueMid indicates a segment between start and end cue points
 	SCTE35CueEnd                        // SCTE35CueEnd indicates an in cue point
 )
 
+// MediaPlaylist represents a single bitrate playlist aka media playlist.
 /*
- This structure represents a single bitrate playlist aka media playlist.
- It related to both a simple media playlists and a sliding window media playlists.
- URI lines in the Playlist point to media segments.
+It related to both a simple media playlists and a sliding window media playlists.
+URI lines in the Playlist point to media segments.
 
- Simple Media Playlist file sample:
+Simple Media Playlist file sample:
 
-   #EXTM3U
-   #EXT-X-VERSION:3
-   #EXT-X-TARGETDURATION:5220
-   #EXTINF:5219.2,
-   http://media.example.com/entire.ts
-   #EXT-X-ENDLIST
+  #EXTM3U
+  #EXT-X-VERSION:3
+  #EXT-X-TARGETDURATION:5220
+  #EXTINF:5219.2,
+  http://media.example.com/entire.ts
+  #EXT-X-ENDLIST
 
- Sample of Sliding Window Media Playlist, using HTTPS:
+Sample of Sliding Window Media Playlist, using HTTPS:
 
-   #EXTM3U
-   #EXT-X-VERSION:3
-   #EXT-X-TARGETDURATION:8
-   #EXT-X-MEDIA-SEQUENCE:2680
+  #EXTM3U
+  #EXT-X-VERSION:3
+  #EXT-X-TARGETDURATION:8
+  #EXT-X-MEDIA-SEQUENCE:2680
 
-   #EXTINF:7.975,
-   https://priv.example.com/fileSequence2680.ts
-   #EXTINF:7.941,
-   https://priv.example.com/fileSequence2681.ts
-   #EXTINF:7.975,
-   https://priv.example.com/fileSequence2682.ts
+  #EXTINF:7.975,
+  https://priv.example.com/fileSequence2680.ts
+  #EXTINF:7.941,
+  https://priv.example.com/fileSequence2681.ts
+  #EXTINF:7.975,
+  https://priv.example.com/fileSequence2682.ts
 */
 type MediaPlaylist struct {
 	TargetDuration float64
@@ -114,8 +119,9 @@ type MediaPlaylist struct {
 	W              *Widevine // Widevine related tags outside of M3U8 specs
 }
 
+// MasterPlaylist represents a master playlist which combines
+// media playlists for multiple bitrates.
 /*
- This structure represents a master playlist which combines media playlists for multiple bitrates.
  URI lines in the playlist identify media playlists.
  Sample of Master Playlist file:
 
@@ -137,7 +143,7 @@ type MasterPlaylist struct {
 	ver           int
 }
 
-// This structure represents variants for master playlist.
+// Variant represents variants for master playlist.
 // Variants included in a master playlist and point to media playlists.
 type Variant struct {
 	URI       string
@@ -145,7 +151,7 @@ type Variant struct {
 	VariantParams
 }
 
-// This structure represents additional parameters for a variant
+// VariantParams represents additional parameters for a variant
 // used in EXT-X-STREAM-INF and EXT-X-I-FRAME-STREAM-INF
 type VariantParams struct {
 	ProgramID    int
@@ -161,7 +167,7 @@ type VariantParams struct {
 	Alternatives []*Alternative // EXT-X-MEDIA
 }
 
-// This structure represents EXT-X-MEDIA tag in variants.
+// Alternative represents EXT-X-MEDIA tag in variants.
 type Alternative struct {
 	GroupID         string
 	URI             string
@@ -175,7 +181,7 @@ type Alternative struct {
 	Subtitles       string
 }
 
-// This structure represents a media segment included in a media playlist.
+// MediaSegment represents a media segment included in a media playlist.
 // Media segment may be encrypted.
 // Widevine supports own tags for encryption metadata.
 type MediaSegment struct {
@@ -202,9 +208,8 @@ type SCTE struct {
 	Elapsed float64
 }
 
-// This structure represents information about stream encryption.
-//
-// Realizes EXT-X-KEY tag.
+// Key represents information about stream encryption.
+// It realizes the EXT-X-KEY tag.
 type Key struct {
 	Method            string
 	URI               string
@@ -213,22 +218,19 @@ type Key struct {
 	Keyformatversions string
 }
 
-// This structure represents specifies how to obtain the Media
-// Initialization Section required to parse the applicable
-// Media Segments.
-
+// Map represents specifies how to obtain the Media Initialization Section
+// required to parse the applicable Media Segments.
 // It applies to every Media Segment that appears after it in the
 // Playlist until the next EXT-X-MAP tag or until the end of the
 // playlist.
-//
-// Realizes EXT-MAP tag.
+// It realizes the EXT-MAP tag.
 type Map struct {
 	URI    string
 	Limit  int // <n> is length in bytes for the file under URI
 	Offset int // [@o] is offset from the start of the file under URI
 }
 
-// This structure represents metadata  for Google Widevine playlists.
+// Widevine represents metadata for Google Widevine playlists.
 // This format not described in IETF draft but provied by Widevine Live Packager as
 // additional tags with #Widevine-prefix.
 type Widevine struct {
@@ -247,7 +249,7 @@ type Widevine struct {
 	VideoSAR               string
 }
 
-// Interface applied to various playlist types.
+// Playlist abstracts various playlist types.
 type Playlist interface {
 	Encode() *bytes.Buffer
 	Decode(bytes.Buffer, bool) error
@@ -255,7 +257,8 @@ type Playlist interface {
 	String() string
 }
 
-// Internal structure for decoding a line of input stream with a list type detection
+// decodingState is the internal structure for decoding
+// a line of input stream with a list type detection.
 type decodingState struct {
 	listType           ListType
 	m3u                bool
