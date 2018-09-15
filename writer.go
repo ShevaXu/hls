@@ -29,7 +29,7 @@ func strver(ver uint8) string {
 // Master playlist consists of variants.
 func NewMasterPlaylist() *MasterPlaylist {
 	p := new(MasterPlaylist)
-	p.ver = minver
+	p.ver = minVer
 	return p
 }
 
@@ -74,7 +74,7 @@ func (p *MasterPlaylist) Encode() *bytes.Buffer {
 		if pl.Alternatives != nil {
 			for _, alt := range pl.Alternatives {
 				// Make sure that we only write out an alternative once
-				altKey := fmt.Sprintf("%s-%s-%s-%s", alt.Type, alt.GroupId, alt.Name, alt.Language)
+				altKey := fmt.Sprintf("%s-%s-%s-%s", alt.Type, alt.GroupID, alt.Name, alt.Language)
 				if altsWritten[altKey] {
 					continue
 				}
@@ -85,9 +85,9 @@ func (p *MasterPlaylist) Encode() *bytes.Buffer {
 					p.buf.WriteString("TYPE=") // Type should not be quoted
 					p.buf.WriteString(alt.Type)
 				}
-				if alt.GroupId != "" {
+				if alt.GroupID != "" {
 					p.buf.WriteString(",GROUP-ID=\"")
-					p.buf.WriteString(alt.GroupId)
+					p.buf.WriteString(alt.GroupID)
 					p.buf.WriteRune('"')
 				}
 				if alt.Name != "" {
@@ -135,7 +135,7 @@ func (p *MasterPlaylist) Encode() *bytes.Buffer {
 		}
 		if pl.Iframe {
 			p.buf.WriteString("#EXT-X-I-FRAME-STREAM-INF:PROGRAM-ID=")
-			p.buf.WriteString(strconv.FormatUint(uint64(pl.ProgramId), 10))
+			p.buf.WriteString(strconv.FormatUint(uint64(pl.ProgramID), 10))
 			p.buf.WriteString(",BANDWIDTH=")
 			p.buf.WriteString(strconv.FormatUint(uint64(pl.Bandwidth), 10))
 			if pl.Codecs != "" {
@@ -160,7 +160,7 @@ func (p *MasterPlaylist) Encode() *bytes.Buffer {
 			p.buf.WriteRune('\n')
 		} else {
 			p.buf.WriteString("#EXT-X-STREAM-INF:PROGRAM-ID=")
-			p.buf.WriteString(strconv.FormatUint(uint64(pl.ProgramId), 10))
+			p.buf.WriteString(strconv.FormatUint(uint64(pl.ProgramID), 10))
 			p.buf.WriteString(",BANDWIDTH=")
 			p.buf.WriteString(strconv.FormatUint(uint64(pl.Bandwidth), 10))
 			if pl.Codecs != "" {
@@ -242,7 +242,7 @@ func (p *MasterPlaylist) String() string {
 // Capacity is total size of a playlist.
 func NewMediaPlaylist(winsize uint, capacity uint) (*MediaPlaylist, error) {
 	p := new(MediaPlaylist)
-	p.ver = minver
+	p.ver = minVer
 	p.capacity = capacity
 	if err := p.SetWinSize(winsize); err != nil {
 		return nil, err
@@ -390,10 +390,10 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 	if p.MediaType > 0 {
 		p.buf.WriteString("#EXT-X-PLAYLIST-TYPE:")
 		switch p.MediaType {
-		case EVENT:
+		case MediaTypeEvent:
 			p.buf.WriteString("EVENT\n")
 			p.buf.WriteString("#EXT-X-ALLOW-CACHE:NO\n")
-		case VOD:
+		case MediaTypeVOD:
 			p.buf.WriteString("VOD\n")
 		}
 	}
@@ -407,70 +407,70 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 		p.buf.WriteString("#EXT-X-I-FRAMES-ONLY\n")
 	}
 	// Widevine tags
-	if p.WV != nil {
-		if p.WV.AudioChannels != 0 {
+	if p.W != nil {
+		if p.W.AudioChannels != 0 {
 			p.buf.WriteString("#WV-AUDIO-CHANNELS ")
-			p.buf.WriteString(strconv.FormatUint(uint64(p.WV.AudioChannels), 10))
+			p.buf.WriteString(strconv.FormatUint(uint64(p.W.AudioChannels), 10))
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.AudioFormat != 0 {
+		if p.W.AudioFormat != 0 {
 			p.buf.WriteString("#WV-AUDIO-FORMAT ")
-			p.buf.WriteString(strconv.FormatUint(uint64(p.WV.AudioFormat), 10))
+			p.buf.WriteString(strconv.FormatUint(uint64(p.W.AudioFormat), 10))
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.AudioProfileIDC != 0 {
+		if p.W.AudioProfileIDC != 0 {
 			p.buf.WriteString("#WV-AUDIO-PROFILE-IDC ")
-			p.buf.WriteString(strconv.FormatUint(uint64(p.WV.AudioProfileIDC), 10))
+			p.buf.WriteString(strconv.FormatUint(uint64(p.W.AudioProfileIDC), 10))
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.AudioSampleSize != 0 {
+		if p.W.AudioSampleSize != 0 {
 			p.buf.WriteString("#WV-AUDIO-SAMPLE-SIZE ")
-			p.buf.WriteString(strconv.FormatUint(uint64(p.WV.AudioSampleSize), 10))
+			p.buf.WriteString(strconv.FormatUint(uint64(p.W.AudioSampleSize), 10))
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.AudioSamplingFrequency != 0 {
+		if p.W.AudioSamplingFrequency != 0 {
 			p.buf.WriteString("#WV-AUDIO-SAMPLING-FREQUENCY ")
-			p.buf.WriteString(strconv.FormatUint(uint64(p.WV.AudioSamplingFrequency), 10))
+			p.buf.WriteString(strconv.FormatUint(uint64(p.W.AudioSamplingFrequency), 10))
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.CypherVersion != "" {
+		if p.W.CypherVersion != "" {
 			p.buf.WriteString("#WV-CYPHER-VERSION ")
-			p.buf.WriteString(p.WV.CypherVersion)
+			p.buf.WriteString(p.W.CypherVersion)
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.ECM != "" {
+		if p.W.ECM != "" {
 			p.buf.WriteString("#WV-ECM ")
-			p.buf.WriteString(p.WV.ECM)
+			p.buf.WriteString(p.W.ECM)
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.VideoFormat != 0 {
+		if p.W.VideoFormat != 0 {
 			p.buf.WriteString("#WV-VIDEO-FORMAT ")
-			p.buf.WriteString(strconv.FormatUint(uint64(p.WV.VideoFormat), 10))
+			p.buf.WriteString(strconv.FormatUint(uint64(p.W.VideoFormat), 10))
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.VideoFrameRate != 0 {
+		if p.W.VideoFrameRate != 0 {
 			p.buf.WriteString("#WV-VIDEO-FRAME-RATE ")
-			p.buf.WriteString(strconv.FormatUint(uint64(p.WV.VideoFrameRate), 10))
+			p.buf.WriteString(strconv.FormatUint(uint64(p.W.VideoFrameRate), 10))
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.VideoLevelIDC != 0 {
+		if p.W.VideoLevelIDC != 0 {
 			p.buf.WriteString("#WV-VIDEO-LEVEL-IDC")
-			p.buf.WriteString(strconv.FormatUint(uint64(p.WV.VideoLevelIDC), 10))
+			p.buf.WriteString(strconv.FormatUint(uint64(p.W.VideoLevelIDC), 10))
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.VideoProfileIDC != 0 {
+		if p.W.VideoProfileIDC != 0 {
 			p.buf.WriteString("#WV-VIDEO-PROFILE-IDC ")
-			p.buf.WriteString(strconv.FormatUint(uint64(p.WV.VideoProfileIDC), 10))
+			p.buf.WriteString(strconv.FormatUint(uint64(p.W.VideoProfileIDC), 10))
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.VideoResolution != "" {
+		if p.W.VideoResolution != "" {
 			p.buf.WriteString("#WV-VIDEO-RESOLUTION ")
-			p.buf.WriteString(p.WV.VideoResolution)
+			p.buf.WriteString(p.W.VideoResolution)
 			p.buf.WriteRune('\n')
 		}
-		if p.WV.VideoSAR != "" {
+		if p.W.VideoSAR != "" {
 			p.buf.WriteString("#WV-VIDEO-SAR ")
-			p.buf.WriteString(p.WV.VideoSAR)
+			p.buf.WriteString(p.W.VideoSAR)
 			p.buf.WriteRune('\n')
 		}
 	}
@@ -493,7 +493,7 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 		}
 		if seg.SCTE != nil {
 			switch seg.SCTE.Syntax {
-			case SCTE35_67_2014:
+			case Syntax672014:
 				p.buf.WriteString("#EXT-SCTE35:")
 				p.buf.WriteString("CUE=\"")
 				p.buf.WriteString(seg.SCTE.Cue)
@@ -508,16 +508,16 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Time, 'f', -1, 64))
 				}
 				p.buf.WriteRune('\n')
-			case SCTE35_OATCLS:
+			case SyntaxOATCLS:
 				switch seg.SCTE.CueType {
-				case SCTE35Cue_Start:
+				case SCTE35CueStart:
 					p.buf.WriteString("#EXT-OATCLS-SCTE35:")
 					p.buf.WriteString(seg.SCTE.Cue)
 					p.buf.WriteRune('\n')
 					p.buf.WriteString("#EXT-X-CUE-OUT:")
 					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Time, 'f', -1, 64))
 					p.buf.WriteRune('\n')
-				case SCTE35Cue_Mid:
+				case SCTE35CueMid:
 					p.buf.WriteString("#EXT-X-CUE-OUT-CONT:")
 					p.buf.WriteString("ElapsedTime=")
 					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Elapsed, 'f', -1, 64))
@@ -526,7 +526,7 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 					p.buf.WriteString(",SCTE35=")
 					p.buf.WriteString(seg.SCTE.Cue)
 					p.buf.WriteRune('\n')
-				case SCTE35Cue_End:
+				case SCTE35CueEnd:
 					p.buf.WriteString("#EXT-X-CUE-IN")
 					p.buf.WriteRune('\n')
 				}
@@ -577,7 +577,7 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 		}
 		if !seg.ProgramDateTime.IsZero() {
 			p.buf.WriteString("#EXT-X-PROGRAM-DATE-TIME:")
-			p.buf.WriteString(seg.ProgramDateTime.Format(DATETIME))
+			p.buf.WriteString(seg.ProgramDateTime.Format(DateTime))
 			p.buf.WriteRune('\n')
 		}
 		if seg.Limit > 0 {
@@ -716,7 +716,7 @@ func (p *MediaPlaylist) SetRange(limit, offset int64) error {
 //
 // Deprecated: Use SetSCTE35 instead.
 func (p *MediaPlaylist) SetSCTE(cue string, id string, time float64) error {
-	return p.SetSCTE35(&SCTE{Syntax: SCTE35_67_2014, Cue: cue, ID: id, Time: time})
+	return p.SetSCTE35(&SCTE{Syntax: Syntax672014, Cue: cue, ID: id, Time: time})
 }
 
 // SetSCTE35 sets the SCTE cue format for the current media segment

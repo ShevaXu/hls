@@ -20,16 +20,16 @@ const (
 		   o  The EXT-X-MEDIA tag.
 		   o  The AUDIO and VIDEO attributes of the EXT-X-STREAM-INF tag.
 	*/
-	minver   = uint8(3)
-	DATETIME = time.RFC3339Nano // Format for EXT-X-PROGRAM-DATE-TIME defined in section 3.4.5
+	minVer   = uint8(3)
+	DateTime = time.RFC3339Nano // Format for EXT-X-PROGRAM-DATE-TIME defined in section 3.4.5
 )
 
 type ListType uint
 
 const (
 	// use 0 for not defined type
-	MASTER ListType = iota + 1
-	MEDIA
+	ListTypeMaster ListType = iota + 1
+	ListTypeMedia
 )
 
 // for EXT-X-PLAYLIST-TYPE tag
@@ -37,8 +37,8 @@ type MediaType uint
 
 const (
 	// use 0 for not defined type
-	EVENT MediaType = iota + 1
-	VOD
+	MediaTypeEvent MediaType = iota + 1
+	MediaTypeVOD
 )
 
 // SCTE35Syntax defines the format of the SCTE-35 cue points which do not use
@@ -47,9 +47,11 @@ const (
 type SCTE35Syntax uint
 
 const (
-	// SCTE35_67_2014 will be the default due to backwards compatibility reasons.
-	SCTE35_67_2014 SCTE35Syntax = iota // SCTE35_67_2014 defined in http://www.scte.org/documents/pdf/standards/SCTE%2067%202014.pdf
-	SCTE35_OATCLS                      // SCTE35_OATCLS is a non-standard but common format
+	// Syntax672014 will be the default due to backwards compatibility reasons.
+	// (defined in http://www.scte.org/documents/pdf/standards/SCTE%2067%202014.pdf)
+	Syntax672014 SCTE35Syntax = iota
+	// SyntaxOATCLS is a non-standard but common format
+	SyntaxOATCLS
 )
 
 // SCTE35CueType defines the type of cue point, used by readers and writers to
@@ -57,9 +59,9 @@ const (
 type SCTE35CueType uint
 
 const (
-	SCTE35Cue_Start SCTE35CueType = iota // SCTE35Cue_Start indicates an out cue point
-	SCTE35Cue_Mid                        // SCTE35Cue_Mid indicates a segment between start and end cue points
-	SCTE35Cue_End                        // SCTE35Cue_End indicates an in cue point
+	SCTE35CueStart SCTE35CueType = iota // SCTE35CueStart indicates an out cue point
+	SCTE35CueMid                        // SCTE35CueMid indicates a segment between start and end cue points
+	SCTE35CueEnd                        // SCTE35CueEnd indicates an in cue point
 )
 
 /*
@@ -107,9 +109,9 @@ type MediaPlaylist struct {
 	count          uint // number of segments added to the playlist
 	buf            bytes.Buffer
 	ver            uint8
-	Key            *Key // EXT-X-KEY is optional encryption key displayed before any segments (default key for the playlist)
-	Map            *Map // EXT-X-MAP is optional tag specifies how to obtain the Media Initialization Section (default map for the playlist)
-	WV             *WV  // Widevine related tags outside of M3U8 specs
+	Key            *Key      // EXT-X-KEY is optional encryption key displayed before any segments (default key for the playlist)
+	Map            *Map      // EXT-X-MAP is optional tag specifies how to obtain the Media Initialization Section (default map for the playlist)
+	W              *Widevine // Widevine related tags outside of M3U8 specs
 }
 
 /*
@@ -146,7 +148,7 @@ type Variant struct {
 // This structure represents additional parameters for a variant
 // used in EXT-X-STREAM-INF and EXT-X-I-FRAME-STREAM-INF
 type VariantParams struct {
-	ProgramId    uint32
+	ProgramID    uint32
 	Bandwidth    uint32
 	Codecs       string
 	Resolution   string
@@ -161,7 +163,7 @@ type VariantParams struct {
 
 // This structure represents EXT-X-MEDIA tag in variants.
 type Alternative struct {
-	GroupId         string
+	GroupID         string
 	URI             string
 	Type            string
 	Language        string
@@ -177,7 +179,7 @@ type Alternative struct {
 // Media segment may be encrypted.
 // Widevine supports own tags for encryption metadata.
 type MediaSegment struct {
-	SeqId           uint64
+	SeqID           uint64
 	Title           string // optional second parameter for EXTINF tag
 	URI             string
 	Duration        float64   // first parameter for EXTINF tag; duration must be integers if protocol version is less than 3 but we are always keep them float
@@ -228,8 +230,8 @@ type Map struct {
 
 // This structure represents metadata  for Google Widevine playlists.
 // This format not described in IETF draft but provied by Widevine Live Packager as
-// additional tags with #WV-prefix.
-type WV struct {
+// additional tags with #Widevine-prefix.
+type Widevine struct {
 	AudioChannels          uint
 	AudioFormat            uint
 	AudioProfileIDC        uint
