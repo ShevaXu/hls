@@ -263,19 +263,21 @@ func (p *MediaPlaylist) last() int {
 	return p.tail - 1
 }
 
-// Remove current segment from the head of chunk slice form a media playlist. Useful for sliding playlists.
+// Remove removes a segment from the head of chunk slice form a media playlist.
+// The removed segment will return for further use.
 // This operation does reset playlist cache.
-func (p *MediaPlaylist) Remove() (err error) {
+func (p *MediaPlaylist) Remove() (removed *MediaSegment, err error) {
 	if p.count == 0 {
-		return errors.New("playlist is empty")
+		return nil, errors.New("playlist is empty")
 	}
+	removed = p.Segments[p.head]
 	p.head = (p.head + 1) % p.capacity
 	p.count--
 	if !p.Closed {
 		p.SeqNo++
 	}
 	p.buf.Reset()
-	return nil
+	return
 }
 
 // Append appends a MediaSegment to the tail of chunk slice for a media playlist.
@@ -309,16 +311,16 @@ func (p *MediaPlaylist) AppendWithAutoExtend(seg *MediaSegment) error {
 // appends one chunk to the tail.
 // Useful for sliding/live playlists.
 // This operation does reset cache.
-func (p *MediaPlaylist) Slide(seg *MediaSegment) (err error) {
+func (p *MediaPlaylist) Slide(seg *MediaSegment) (removed *MediaSegment, err error) {
 	if !p.Closed {
 		if p.count >= p.winsize {
-			if err = p.Remove(); err != nil {
-				return err
+			if removed, err = p.Remove(); err != nil {
+				return
 			}
 		}
-		return p.Append(seg)
+		err = p.Append(seg)
 	}
-	return nil
+	return
 }
 
 // ResetCache resets the playlist cache, so that
